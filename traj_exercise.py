@@ -5,6 +5,8 @@ from numpy.random import randn
 import numpy as np
 from numpy.testing._private.utils import measure
 from traj_kf import KF
+np.random.seed(23)
+NOISE_SD = 2
 
 def a_drag (vel, altitude):
     """ returns the drag coefficient of a baseball at a given velocity (m/s)
@@ -20,18 +22,18 @@ def a_drag (vel, altitude):
     
     return val
 
-def noise_func(input, min=0.0, max=1.0):
-    sd = 0.03*input**2
+def noise_func(min=0.0, max=1.0):
+    sd = NOISE_SD
     # if sd > max: 
     #     sd = max
     # elif sd < min: 
     #     sd = min
-    
-    noise = np.random.normal(loc=0, scale=sd)
+
+    noise = np.random.normal(0, sd)
     return noise
 
 
-def compute_trajectory(v_0_mph, theta, v_wind_mph=0, alt_ft = 0.0, dt = 0.01, ):
+def compute_trajectory(v_0_mph, theta, v_wind_mph=0, alt_ft = 0.0, dt = 0.01):
     filter = KF()
     g = 9.8
     
@@ -59,9 +61,12 @@ def compute_trajectory(v_0_mph, theta, v_wind_mph=0, alt_ft = 0.0, dt = 0.01, ):
         
         v = math.sqrt((v_x - v_wind) **2+ v_y**2)
         
-        x_measured.append(x_measured[i] + (v_x + noise_func(abs(v_x))) * dt)
+        noise = noise_func()
+        print(v_x)
+        x_measured.append(x_measured[i] + (v_x + v_x*noise) * dt)
         x_true.append(x_true[i] + v_x * dt)
-        x_pred.append(x_measured[i+1] + filter.add_one())
+        x_pred.append(filter.filter(x_measured[i+1], NOISE_SD**2, v_x, dt))
+        print([x_true[i+1], x_measured[i+1], x_pred[i+1]])
         y.append(y[i] + v_y * dt)        
         
         v_x = v_x - a_drag(v, altitude) * v * (v_x - v_wind) * dt
