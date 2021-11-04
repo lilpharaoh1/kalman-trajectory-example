@@ -1,6 +1,9 @@
 from matplotlib.pyplot import xcorr
 import numpy as np
-from test import gaussian
+from collections import namedtuple
+
+
+gaussian = namedtuple('Gaussian', ['mean', 'var'])
 
 class KF:
    
@@ -26,10 +29,9 @@ class KF:
         P = P + Q
         return gaussian(x, P)
 
-    def filter(self, sensor_measurment, sensor_var, velocity, dt):
-        dx = velocity*dt 
-        prior = self.predict(gaussian(self.x, self.P), gaussian(dx, 0.0001))
+    def filter(self, sensor_measurment, sensor_var, process_measurment, process_var):
+        prior = self.predict(gaussian(self.x, self.P), gaussian(process_measurment, process_var))
         
         self.x, self.P = self.update(prior, gaussian(sensor_measurment, sensor_var))
-
-        return self.x 
+        # print(self.P)
+        return prior.mean, self.x 
